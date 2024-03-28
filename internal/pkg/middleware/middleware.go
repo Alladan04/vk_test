@@ -88,3 +88,51 @@ func JwtMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+func JwtMiddlewareCommon(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		header := r.Header.Get("Authorization")
+		if header == "" {
+
+			next.ServeHTTP(w, r)
+			return
+		}
+		headerParts := strings.Split(header, " ")
+		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+
+			next.ServeHTTP(w, r)
+			return
+		}
+		token := headerParts[1]
+
+		claims, err := parseToken(token)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		timeExp, err := claims.Claims.GetExpirationTime()
+		if err != nil {
+
+			next.ServeHTTP(w, r)
+			return
+		}
+		if timeExp.Before(time.Now().UTC()) {
+
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		payload, err := parseJwtPayloadFromClaims(claims)
+		if err != nil {
+
+			next.ServeHTTP(w, r)
+			return
+		}
+		ctx := context.WithValue(r.Context(), models.PayloadContextKey, payload)
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
+}

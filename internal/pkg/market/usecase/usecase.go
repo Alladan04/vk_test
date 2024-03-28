@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"errors"
+	"strconv"
 	"time"
 
 	"github.com/Alladan04/vk_test/internal/models"
@@ -41,13 +43,44 @@ func (uc *MarketUsecase) AddItem(ctx context.Context, data models.ItemForm, user
 	return item, nil
 }
 
-func (uc *MarketUsecase) GetAll(ctx context.Context, count int64, offset int64, sortOrder string, sortField string, minPrice float64, maxPrice float64) ([]models.MarketItem, error) {
+func (uc *MarketUsecase) GetAll(ctx context.Context, count int64, offset int64, sortOrder string, sortField string, minParam string, maxParam string, userId uuid.UUID) ([]models.MarketItemResponse, error) {
+	var minPrice float64
+	var maxPrice float64
+	//find out min and max real values
+	if minParam == "" {
+		minPrice, _ = uc.repo.GetMinPrice(ctx)
 
-	if minPrice == 0 && maxPrice == 0 {
-		data, err := uc.repo.GetAll(ctx, count, offset, sortOrder, sortField)
-		return data, err
+	} else {
+		var err error
+		minPrice, err = strconv.ParseFloat(minParam, 64)
+		if err != nil {
+			return nil, errors.New("wrong minPrice param")
+		}
+	}
+	if maxParam == "" {
+		maxPrice, _ = uc.repo.GetMaxPrice(ctx)
+	} else {
+		var err error
+		maxPrice, err = strconv.ParseFloat(maxParam, 64)
+		if err != nil {
+			return nil, errors.New("wrong maxPrice param")
+		}
+	}
+
+	data, err := uc.repo.GetFilteredByPrice(ctx, count, offset, sortOrder, sortField, minPrice, maxPrice)
+
+	if err != nil {
+		return nil, err
+	}
+	result := make([]models.MarketItemResponse, 0)
+
+	for _, element := range data {
+		result = append(result,
+			models.MarketItemResponse{
+				Item:           element,
+				IsCurrentUsers: element.Owner == userId},
+		)
 
 	}
-	data, err := uc.repo.GetFilteredByPrice(ctx, count, offset, sortOrder, sortField, minPrice, maxPrice)
-	return data, err
+	return result, err
 }

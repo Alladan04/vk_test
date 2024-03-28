@@ -11,7 +11,7 @@ import (
 const (
 	addItem            = "INSERT INTO market (id, title, description, image_path, price, create_time, owner) VALUES ($1, $2, $3, $4, $5, $6, $7);"
 	getAll             = "SELECT id, title, description, image_path, price, create_time, owner FROM market ORDER BY %s %s LIMIT $1 OFFSET $2; "
-	getFilteredByPrice = "SELECT id, title, description, image_path, price, create_time, owner FROM market WHERE price>$1 AND price<$2 ORDER BY %s %s LIMIT $3 OFFSET $4;"
+	getFilteredByPrice = "SELECT id, title, description, image_path, price, create_time, owner FROM market WHERE price>=$1 AND price<=$2 ORDER BY %s %s LIMIT $3 OFFSET $4;"
 	getMinPrice        = "SELECT MIN(price) FROM market;"
 	getMaxPrice        = "SELECT MAX(price) FROM market;"
 )
@@ -71,4 +71,21 @@ func (repo *MarketRepo) GetFilteredByPrice(ctx context.Context, count int64, off
 	}
 
 	return result, nil
+}
+
+func (repo *MarketRepo) GetMaxPrice(ctx context.Context) (float64, error) {
+	var maxPrice float64
+	err := repo.db.QueryRow(ctx, getMaxPrice).Scan(&maxPrice)
+	if err != nil {
+		return 0, err
+	}
+	return maxPrice, nil
+}
+func (repo *MarketRepo) GetMinPrice(ctx context.Context) (float64, error) {
+	var minPrice float64
+	err := repo.db.QueryRow(ctx, getMinPrice).Scan(&minPrice)
+	if err != nil {
+		return 0, err
+	}
+	return minPrice, nil
 }

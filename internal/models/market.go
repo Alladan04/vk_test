@@ -15,7 +15,6 @@ const (
 	desscriptionMaxLenth = 3000
 )
 
-// type Money int64
 type MarketItem struct {
 	Id          uuid.UUID `json:"id"`
 	Title       string    `json:"title"`
@@ -26,6 +25,10 @@ type MarketItem struct {
 	Owner       uuid.UUID `json:"owner"`
 }
 
+type MarketItemResponse struct {
+	Item           MarketItem `json:"item"`
+	IsCurrentUsers bool       `json:"is_current_users"`
+}
 type ItemForm struct {
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
@@ -54,26 +57,3 @@ func (form *ItemForm) Validate() error {
 	}
 	return nil
 }
-
-/*
-func ToMonew(f float64) Money {
-	return Money((f * 100) + 0.5)
-}
-
-func (m Money) Float64() float64 {
-	x := float64(m)
-	x = x / 100
-	return x
-}
-
-func (m Money) Multiply(f float64) Money {
-	x := (float64(m) * f) + 0.5
-	return Money(x)
-}
-
-func (m Money) String() string {
-	x := float64(m)
-	x = x / 100
-	return fmt.Sprintf("$%.2f", x)
-}
-*/

@@ -7,6 +7,7 @@ import (
 	"github.com/Alladan04/vk_test/internal/models"
 	"github.com/Alladan04/vk_test/internal/pkg/market"
 	"github.com/Alladan04/vk_test/internal/pkg/utils"
+	"github.com/satori/uuid"
 )
 
 type MarketHandler struct {
@@ -45,15 +46,16 @@ func (h *MarketHandler) AddItem(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// TODO: move all the logic from handler to usecase.
 func (h *MarketHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	sortingOptions := []string{"price", "date"}
 
 	//resolve sorting direction (ASC by default)
 	sortOrder := r.URL.Query().Get("sort")
-	if sortOrder == "" || sortOrder == "up" {
+	if sortOrder == "up" {
 		sortOrder = "ASC"
-	} else if sortOrder == "down" {
+	} else if sortOrder == "down" || sortOrder == "" {
 		sortOrder = "DESC"
 	} else {
 		utils.WriteErrorMessage(w, http.StatusBadRequest, "wrong sort parameter")
@@ -95,27 +97,24 @@ func (h *MarketHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		offset = 0
 	}
 
-	//check min and max  price params
+	//check min and max  price params in usecase
 	minParam := r.URL.Query().Get("min")
 	maxParam := r.URL.Query().Get("max")
-	min := 0.0
-	if minParam != "" {
-		min, err = strconv.ParseFloat(minParam, 64)
-		if err != nil {
-			utils.WriteErrorMessage(w, http.StatusBadRequest, "wrong min param")
-			return
-		}
+
+	//get userId from context if user is authorized or set userId to zero value if not authorized
+	userId := uuid.UUID{}
+	jwtPayload, ok := r.Context().Value(models.PayloadContextKey).(models.JwtPayload)
+	if ok {
+		userId = jwtPayload.Id
 	}
-	max, err := strconv.ParseFloat(maxParam, 64)
-	if err != nil && maxParam != "" {
-		utils.WriteErrorMessage(w, http.StatusBadRequest, "wrong max param")
-		return
-	}
-	result, err := h.uc.GetAll(r.Context(), count, offset, sortOrder, sortField, min, max)
+
+	//get result from usecase
+	result, err := h.uc.GetAll(r.Context(), count, offset, sortOrder, sortField, minParam, maxParam, userId)
 	if err != nil {
 		utils.WriteErrorMessage(w, http.StatusBadRequest, err.Error())
 		return
 
 	}
 	utils.WriteResponseData(w, result, http.StatusOK)
+
 }

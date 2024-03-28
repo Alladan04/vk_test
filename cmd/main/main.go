@@ -35,9 +35,6 @@ func main() {
 	}
 	defer db.Close()
 
-	//JwtMiddleware := jwt.CreateJwtMiddleware(logger)
-	//RecoverMiddleware := recover.CreateRecoverMiddleware(logger)
-
 	AuthRepo := authRepo.NewAuthRepo(db)
 	AuthUsecase := authUsecase.NewAuthUsecase(AuthRepo)
 	AuthDelivery := authDelivery.NewAuthHandler(AuthUsecase)
@@ -52,14 +49,6 @@ func main() {
 		w.WriteHeader(http.StatusNotFound)
 	})
 
-	//r.Use(cors.CorsMiddleware,  RecoverMiddleware)
-
-	/*r.PathPrefix("/swagger").Handler(httpSwagger.Handler(
-		httpSwagger.DeepLinking(true),
-		httpSwagger.DocExpansion("none"),
-		httpSwagger.DomID("swagger-ui"),
-	)).Methods(http.MethodGet, http.MethodOptions)
-	*/
 	auth := r.PathPrefix("/auth").Subrouter()
 	{
 		auth.Handle("/signup", http.HandlerFunc(AuthDelivery.SignUp)).Methods(http.MethodPost, http.MethodOptions)
@@ -69,7 +58,7 @@ func main() {
 	}
 	market := r.PathPrefix("/market").Subrouter()
 	{
-		market.Handle("/get", http.HandlerFunc(MarketDelivery.GetAll)).Methods(http.MethodGet, http.MethodOptions)
+		market.Handle("/get", middleware.JwtMiddlewareCommon(http.HandlerFunc(MarketDelivery.GetAll))).Methods(http.MethodGet, http.MethodOptions)
 		market.Handle("/add", middleware.JwtMiddleware(http.HandlerFunc(MarketDelivery.AddItem))).Methods(http.MethodPost, http.MethodOptions)
 
 	}
