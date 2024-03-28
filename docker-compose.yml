@@ -1,0 +1,45 @@
+version: "3.3"
+
+services:
+  main:
+    container_name: main
+    build:
+      context: .
+      dockerfile: ./build/main.Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_started
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - VK_test-network
+    volumes:
+      - type: bind
+        source: /opt/images/
+        target: /opt/images/
+  postgres:
+    env_file:
+      - .env
+    container_name: postgres
+    image: postgres:15.0
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      - VK_test-network
+    volumes:
+      - ./build/sql/create_script.sql:/docker-entrypoint-initdb.d/initdb.sql
+      - vk_test-db-data:/var/lib/postgresql/data
+networks:
+  VK_test-network:
+    name: VK_test-network
+    driver: bridge
+
+volumes:
+  vk_test-db-data:
